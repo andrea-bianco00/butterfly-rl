@@ -58,3 +58,23 @@ identify any selected demonstration episode as illustrative.
 Replay only trajectories exported by `evaluate_ppo.py`. The visual wingbeat
 and rendered butterfly are artistic; position and attitude must match logged
 simulator states. No fake losses, episode numbers or PPO checkpoint claims.
+
+## Audit changes (2026-10-13)
+
+- **Training seed 1729** (replaces 42); evaluation seeds start at 200000.
+- Obstacles now vary in count, x/y positions and radius across episodes.
+- Wind and rain strengths are sampled independently for each episode.
+- Reaching the goal while crashing is never scored as success.
+- Tests cover seeded determinism, obstacle diversity, invalid actions and collision priority.
+- The GitHub Actions workflow installs dependencies and executes the tests before training.
+
+**Important:** Changes to environment dynamics invalidate comparability with older
+checkpoints. Previously started GitHub Actions runs use the code at their original
+commit, not the corrected code. Launch a NEW workflow after the existing run
+finishes. No robustness claims are justified until that new run and held-out
+evaluation finish successfully.
+
+Remaining research limitations: stylized lift/torque (not physical wingbeats),
+observation only includes nearest obstacle, fixed target, no moving obstacles,
+no explicit solar physics, single PPO training seed and limited out-of-distribution
+evaluation. Address these experimentally rather than claiming universal flight.
