@@ -24,3 +24,29 @@ def test_seeded_determinism():
         assert xa[1:4]==xb[1:4]
         if xa[2] or xa[3]:
             break
+
+def test_collision_cannot_be_success():
+    env=RobustButterflyEnv("obstacles")
+    env.reset(seed=1729)
+    env.x=env.target[0]
+    env.z=env.target[1]
+    env.obstacles=[(env.target[0],env.target[1],0.5)]
+    _,reward,terminated,truncated,info=env.step([0.5,0.5])
+    assert terminated and not truncated
+    assert info["crashed"] and not info["reached_target"]
+    assert reward < 0
+
+def test_obstacle_layout_changes_with_seed():
+    a=RobustButterflyEnv("storm")
+    b=RobustButterflyEnv("storm")
+    a.reset(seed=1729)
+    b.reset(seed=1730)
+    assert a.obstacles != b.obstacles
+
+def test_invalid_actions_rejected():
+    env=RobustButterflyEnv("calm")
+    env.reset(seed=1729)
+    with pytest.raises(ValueError):
+        env.step([float("nan"),0.2])
+    with pytest.raises(ValueError):
+        env.step([0.2])
