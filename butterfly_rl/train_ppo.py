@@ -10,7 +10,7 @@ from .robust_env import RobustButterflyEnv, LEVELS
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--steps-per-level",type=int,default=100_000)
-    p.add_argument("--seed",type=int,default=42)
+    p.add_argument("--seed",type=int,default=1729)
     p.add_argument("--output",default="runs/ppo")
     args=p.parse_args()
     if args.steps_per_level<2048:
