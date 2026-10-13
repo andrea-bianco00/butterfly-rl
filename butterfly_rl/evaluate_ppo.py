@@ -44,7 +44,7 @@ def main():
         model=PPO.load(str(path),device="cpu")
         results[checkpoint]={}
         for level in LEVELS:
-            samples=[episode(model,level,100_000+i)[0] for i in range(args.episodes)]
+            samples=[episode(model,level,200_000+i)[0] for i in range(args.episodes)]
             results[checkpoint][level]={
                 "n":len(samples),
                 "success_rate":float(np.mean([s["success"] for s in samples])),
@@ -54,7 +54,7 @@ def main():
                              if len(samples)>1 else None,
                 "mean_seconds":float(np.mean([s["seconds"] for s in samples]))}
             if level in ("calm","storm"):
-                _,trajectory=episode(model,level,2026,True)
+                _,trajectory=episode(model,level,2027,True)
                 (out/f"trajectory_{checkpoint}_{level}.json").write_text(
                     json.dumps(trajectory,indent=2))
         (out/"metrics.json").write_text(json.dumps(results,indent=2))
