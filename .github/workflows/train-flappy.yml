@@ -1,0 +1,53 @@
+name: Train Flappy Butterfly PPO
+
+on:
+  push:
+    paths:
+      - ".github/workflows/train-flappy.yml"
+  workflow_dispatch:
+    inputs:
+      steps_per_level:
+        description: "Real PPO training steps per curriculum level"
+        required: true
+        default: "20000"
+        type: choice
+        options: ["2048", "20000", "100000", "300000"]
+
+permissions:
+  contents: read
+
+jobs:
+  train-flappy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ppo.txt
+      - name: Run environment tests
+        run: python -m pytest -q
+      - name: Train real PPO (seed 1729)
+        run: |
+          python -m butterfly_rl.train_flappy --seed 1729 --steps-per-level ${{ inputs.steps_per_level || '20000' }} --output runs/flappy
+      - name: Evaluate held-out environments
+        run: |
+          python -m butterfly_rl.evaluate_flappy --episodes 30 --input runs/flappy --output runs/flappy-evaluation
+      - name: Preserve models, metrics and genuine trajectories
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flappy-butterfly-ppo-${{ github.run_id }}
+          path: |
+            runs/flappy/*.zip
+            runs/flappy/manifest.json
+            runs/flappy-evaluation/*.json
+          if-no-files-found: warn
+          retention-days: 30
