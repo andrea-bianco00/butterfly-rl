@@ -1,0 +1,23 @@
+{
+  "trained": {
+    "episodes": 100,
+    "mean_return": 238.23674464745548,
+    "std_return": 1.3414246108683348,
+    "crash_rate": 0,
+    "mean_flight_seconds": 12
+  },
+  "zero_action_baseline": {
+    "episodes": 100,
+    "mean_return": -8.505217640002122,
+    "std_return": 144.83836965791275,
+    "crash_rate": 0.5,
+    "mean_flight_seconds": 9.1165
+  },
+  "random_fixed_policy_baseline": {
+    "episodes": 100,
+    "mean_return": -34.9617245915206,
+    "std_return": 5.875515541119242,
+    "crash_rate": 1,
+    "mean_flight_seconds": 0.962
+  }
+}
