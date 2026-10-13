@@ -14,7 +14,7 @@ The environment includes gravity, drag, pitch dynamics and abstract lift/torque.
 This is **not biologically validated butterfly aerodynamics**. "Sun" is only a
 visual condition in the eventual portfolio, not a physical disturbance. Rain
 is approximated by increased drag; wind by stochastic force. Obstacles are
-stationary circles. The current observation includes local wind and nearest
+randomized stationary circles. The current observation includes local wind and nearest
 obstacle position, so the policy has information for avoidance.
 
 ## Curriculum
@@ -33,7 +33,7 @@ This is an initial curriculum to test, not a claim of guaranteed improvement.
 ```bash
 python -m pip install -r requirements-ppo.txt
 python -m pytest -q
-python -m butterfly_rl.train_ppo --steps-per-level 100000 --seed 42
+python -m butterfly_rl.train_ppo --steps-per-level 100000 --seed 1729
 python -m butterfly_rl.evaluate_ppo --episodes 100
 ```
 
@@ -45,7 +45,7 @@ and subsequent policy snapshots are saved at the end of each curriculum stage.
 ## Evaluation standards
 
 Compare **untrained** and every trained checkpoint across **all five levels**.
-Use held-out evaluation seeds 100000–100099. Report success, crash, episode
+Use held-out evaluation seeds 200000–200099. Report success, crash, episode
 duration, reward mean and standard deviation. Extend to multiple training
 seeds and held-out weather regimes before claiming robust generalization.
 
