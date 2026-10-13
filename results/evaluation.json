@@ -1,23 +1,23 @@
 {
   "trained": {
     "episodes": 100,
-    "mean_return": 238.23674464745548,
-    "std_return": 1.3414246108683348,
+    "mean_return": 238.37666344374415,
+    "std_return": 1.2640812137058557,
     "crash_rate": 0,
     "mean_flight_seconds": 12
   },
   "zero_action_baseline": {
     "episodes": 100,
-    "mean_return": -8.505217640002122,
-    "std_return": 144.83836965791275,
-    "crash_rate": 0.5,
-    "mean_flight_seconds": 9.1165
+    "mean_return": -7.369642547065424,
+    "std_return": 140.58135639722286,
+    "crash_rate": 0.52,
+    "mean_flight_seconds": 8.9205
   },
   "random_fixed_policy_baseline": {
     "episodes": 100,
-    "mean_return": -34.9617245915206,
-    "std_return": 5.875515541119242,
+    "mean_return": -33.507062264146136,
+    "std_return": 7.842745820509454,
     "crash_rate": 1,
-    "mean_flight_seconds": 0.962
+    "mean_flight_seconds": 1.0225
   }
 }
