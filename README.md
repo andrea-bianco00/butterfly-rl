@@ -1,2 +1,53 @@
-# butterfly-rl
-A reinforcement learning agent that learns to fly through trial and error.
+# Butterfly RL 🦋 — Learning to Fly
+
+**A reproducible reinforcement-learning experiment, not a pre-rendered fake learning animation.**
+
+## What is actually implemented?
+
+A simplified **2D hovering control** task. An agent must stabilize altitude and pitch using abstract thrust and torque controls. This is **not** a validated aerodynamic model of a real butterfly. The eventual website butterfly will be a visual interpretation of genuine simulated state trajectories.
+
+- State: `[altitude error, vertical velocity, pitch, angular velocity]`
+- Actions: normalized thrust and pitch torque in `[-1, 1]`
+- Physics: gravity, simplified thrust, velocity damping, pitch dynamics; timestep 0.05 s
+- Reward: penalizes altitude/pitch errors, velocities and excessive action; additional crash penalty
+- Episode limit: 240 steps (12 s)
+
+## Real training — milestone 1
+
+The implemented learning algorithm is **Cross-Entropy Method (CEM)**: it samples candidate feedback policies, runs each candidate in the simulator, selects the highest-return candidates and updates the parameter distribution. It learns from measured episodic reward.
+
+**This baseline is NOT PPO and NOT a neural network.** Neural-network PPO is a separate future milestone; we will not claim it is trained before it actually is.
+
+### Reproduce the experiment
+
+Python 3.10+:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pytest tests -q
+python -m butterfly_rl.train --generations 35 --population 32 --seed 42
+python -m butterfly_rl.evaluate
+```
+
+Training writes `results/policy.npy` and `results/training_history.json`. Evaluation writes `results/evaluation.json` and two **genuine** trajectory JSON files. Source code is in `butterfly_rl/`.
+
+### Measured held-out evaluation
+
+100 evaluation seeds (10000–10099), not used as training episode seeds:
+
+| Metric | Trained CEM | Neutral controls | One random fixed feedback policy |
+|---|---:|---:|---:|
+| Mean return | **238.38** | -7.37 | -33.51 |
+| Crash rate | **0%** | 52% | 100% |
+| Mean episode duration | **12.00 s** | 8.92 s | 1.02 s |
+
+See [experiment notes](results/EXPERIMENT.md) and [evaluation JSON](results/evaluation.json). These are a first experiment with one training seed, not a comprehensive robustness study.
+
+## Roadmap
+
+1. Test environment physics, baseline robustness and multiple training seeds.
+2. Implement and **actually train** a neural policy using PPO; compare to CEM.
+3. Export genuine checkpoint trajectories and measurable learning curves.
+4. Integrate a cinematic orange butterfly into the portfolio's existing black-and-orange design. The background particle network must remain untouched.
+
+**Scientific integrity:** No invented training runs, rewards, trajectories, flight behavior, or claims of biological realism.
