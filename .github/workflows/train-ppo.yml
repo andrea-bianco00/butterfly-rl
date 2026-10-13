@@ -1,0 +1,61 @@
+name: Butterfly RL PPO training
+
+on:
+  workflow_dispatch:
+    inputs:
+      steps_per_level:
+        description: "PPO timesteps per curriculum level (2048 = smoke test, 100000 = experiment)"
+        required: true
+        default: "2048"
+        type: choice
+        options:
+          - "2048"
+          - "10000"
+          - "100000"
+      evaluation_episodes:
+        description: "Held-out evaluation episodes per checkpoint and environment"
+        required: true
+        default: "10"
+        type: choice
+        options:
+          - "10"
+          - "100"
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install training dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ppo.txt
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Train actual PPO policies
+        run: |
+          python -m butterfly_rl.train_ppo --steps-per-level ${{ inputs.steps_per_level }} --seed 42 --output runs/ppo
+      - name: Evaluate held-out seeds
+        run: |
+          python -m butterfly_rl.evaluate_ppo --episodes ${{ inputs.evaluation_episodes }} --input runs/ppo --output runs/evaluation
+      - name: Upload checkpoints and evaluation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: butterfly-ppo-${{ github.run_id }}
+          path: |
+            runs/ppo/*.zip
+            runs/ppo/manifest.json
+            runs/evaluation/*.json
+          if-no-files-found: warn
+          retention-days: 30
