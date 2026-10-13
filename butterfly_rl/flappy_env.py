@@ -80,11 +80,13 @@ class FlappyButterflyEnv(gym.Env):
         self.y+=dt*self.vy
         self.x+=dt*1.7
         crashed=bool(self.y<=0.15 or self.y>=3.85)
+        gates_passed_this_step=0
         for gx,gc,gh in self.gates:
             if abs(gx-self.x)<0.19 and abs(self.y-gc)>gh-0.12:
                 crashed=True
             if previous_x<gx<=self.x and not crashed:
                 self.passed+=1
+                gates_passed_this_step+=1
         # Keep the course scrolling: recycle gates with fresh randomized gaps.
         self.gates=[g for g in self.gates if g[0]>=self.x-0.5]
         if self.with_gates and len(self.gates)<4:
@@ -95,6 +97,5 @@ class FlappyButterflyEnv(gym.Env):
         # Dense survival objective; bonus for clearing pipes, penalty for crashing.
         reward=0.05-0.005*abs(self.vy)-0.002*a*a
         if crashed:reward-=15
-        if self.passed and previous_x<self.x:
-            reward+=sum(3 for gx,_,_ in self.gates if previous_x<gx<=self.x)
+        reward+=3*gates_passed_this_step
         return self._obs(),float(reward),terminated,truncated,self._info(crashed)
