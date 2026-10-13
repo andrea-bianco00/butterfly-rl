@@ -96,6 +96,12 @@ class FlappyButterflyEnv(gym.Env):
         truncated=self.steps>=self.max_steps and not terminated
         # Dense survival objective; bonus for clearing pipes, penalty for crashing.
         reward=0.05-0.005*abs(self.vy)-0.002*a*a
+        # Local shaping: approach the center of the next gap only when nearby.
+        # Moving forward is automatic, so this does not reward staying in place.
+        if self.with_gates and not crashed:
+            gx,gc,gh=self._next_gate()
+            if 0 < gx-self.x < 1.5:
+                reward-=0.015*abs(self.y-gc)
         if crashed:reward-=15
         reward+=3*gates_passed_this_step
         return self._obs(),float(reward),terminated,truncated,self._info(crashed)
