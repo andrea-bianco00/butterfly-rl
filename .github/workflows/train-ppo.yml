@@ -44,7 +44,7 @@ jobs:
         run: python -m pytest -q
       - name: Train actual PPO policies
         run: |
-          python -m butterfly_rl.train_ppo --steps-per-level ${{ inputs.steps_per_level }} --seed 42 --output runs/ppo
+          python -m butterfly_rl.train_ppo --steps-per-level ${{ inputs.steps_per_level }} --seed 1729 --output runs/ppo
       - name: Evaluate held-out seeds
         run: |
           python -m butterfly_rl.evaluate_ppo --episodes ${{ inputs.evaluation_episodes }} --input runs/ppo --output runs/evaluation
