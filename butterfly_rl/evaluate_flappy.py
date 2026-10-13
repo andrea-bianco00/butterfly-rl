@@ -32,7 +32,7 @@ def main():
     a=p.parse_args()
     out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
     results={}
-    for name in ["untrained",*LEVELS]:
+    for name in ["untrained",*LEVELS,"best"]:
         path=Path(a.input)/f"policy_{name}.zip"
         if not path.exists():continue
         model=PPO.load(str(path),device="cpu")
