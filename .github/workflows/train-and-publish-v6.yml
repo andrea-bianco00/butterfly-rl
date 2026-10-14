@@ -1,0 +1,52 @@
+name: Train and publish real Flappy PPO v6
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  train-and-record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PPO and simulation dependencies
+        run: python -m pip install -r requirements-ppo.txt
+      - name: Smoke test impulse-flap physics and deterministic resets
+        run: |
+          python - <<'PY'
+          from butterfly_rl.flappy_impulse_v6 import FlappyImpulseEnvV6
+          a,b=FlappyImpulseEnvV6(),FlappyImpulseEnvV6()
+          x,_=a.reset(seed=2026);y,_=b.reset(seed=2026)
+          assert (x==y).all()
+          for _ in range(20):
+              x,_,da,ta,ia=a.step(1 if _%7==0 else 0)
+              y,_,db,tb,ib=b.step(1 if _%7==0 else 0)
+              assert (x==y).all() and da==db and ia==ib
+              if da or ta:break
+          a.close();b.close()
+          print("V6 deterministic flap physics smoke test passed")
+          PY
+      - name: Train genuine PPO v6 on one fixed difficulty
+        run: python -m butterfly_rl.train_flappy_v6 --seed 1729 --steps 1000000 --interval 50000 --out runs/flappy-v6
+      - name: Record 100 real agents at fixed chronological checkpoints
+        run: python -m butterfly_rl.record_swarm_v6 --models runs/flappy-v6 --out data/replays/swarm-v6-1729.json --seed 94001 --count 100 --horizon 650
+      - name: Publish recorded trajectories without inventing outcomes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/replays/swarm-v6-1729.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish authentic PPO v6 impulse-flap learning replay"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flappy-ppo-v6-training-and-replays
+          path: |
+            runs/flappy-v6/manifest.json
+            runs/flappy-v6/*.zip
+            data/replays/swarm-v6-1729.json
+          retention-days: 30
