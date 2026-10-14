@@ -1,0 +1,35 @@
+name: Audit v3 dynamic feasibility
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "butterfly_rl/dynamic_audit.py"
+      - "tests/test_dynamic_audit.py"
+      - ".github/workflows/dynamic-audit-v3.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements-ppo.txt pytest
+      - name: Validate reproducibility and witness replay
+        run: python -m pytest -q tests/test_dynamic_audit.py
+      - name: Search real v3 dynamics (fixed seeds, 9 scenarios)
+        run: python -m butterfly_rl.dynamic_audit --seeds 7301 7302 7303 --horizon 240 --beam-width 32 --output runs/dynamic-audit.json
+      - name: Upload complete audit and replay actions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: butterfly-v3-dynamic-audit-${{ github.run_id }}
+          path: runs/dynamic-audit.json
+          if-no-files-found: warn
