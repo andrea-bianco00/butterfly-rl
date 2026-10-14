@@ -31,6 +31,8 @@ class StressFlappyEnv(FlappyButterflyEnv):
         if gap is None:
             gap=(0.62,0.88) if self.level=="obstacles" else (0.55,0.78)
         half=float(r.uniform(*gap))
+        if self.condition["spacing"] is not None and self.steps>0 and self.gates:
+            x=self.gates[-1][0]+float(r.uniform(*self.condition["spacing"]))
         self.gates.append((float(x),center,half))
 
     def reset(self,*,seed=None,options=None):
@@ -45,12 +47,6 @@ class StressFlappyEnv(FlappyButterflyEnv):
                 self._new_gate(pos)
                 pos+=float(self.np_random.uniform(*self.condition["spacing"]))
         return self._obs(),self._info(False)
-
-    def step(self,action):
-        # Parent spawns replacement gates at its standard spacing.
-        # The audit deliberately changes ONLY the initial spacing, and
-        # records this limitation in the metadata.
-        return super().step(action)
 
 def episode(condition,seed,max_steps):
     env=StressFlappyEnv(condition,max_steps=max_steps)
@@ -87,7 +83,6 @@ def main():
             "episodes":trials}
     report={"controller":"untrained_oracle_PD",
             "warning":"Not a trained PPO policy. Reads hidden simulator state.",
-            "limitation":"Dense spacing changes initial four gates only; later gates use default spacing.",
             "seed_start":args.seed_start,"max_steps":args.max_steps,
             "conditions":CONDITIONS,"results":results}
     path=Path(args.output);path.parent.mkdir(parents=True,exist_ok=True)
