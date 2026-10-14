@@ -1,0 +1,71 @@
+name: Train PPO v3 - multi-seed progressive obstacles
+
+on:
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "Timesteps per curriculum stage"
+        type: choice
+        required: true
+        default: "2048"
+        options:
+          - "2048"
+          - "100000"
+          - "200000"
+      seed_mode:
+        description: "Single smoke test or three independent training seeds"
+        type: choice
+        required: true
+        default: "smoke"
+        options:
+          - "smoke"
+          - "replicated"
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [1729, 2718, 3141]
+    steps:
+      - name: Skip extra seeds for smoke mode
+        id: select
+        run: |
+          if [[ "${{ inputs.seed_mode }}" == "smoke" && "${{ matrix.seed }}" != "1729" ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.select.outputs.run == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.select.outputs.run == 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        if: steps.select.outputs.run == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-ppo.txt
+          python -m pip install pytest
+      - name: Test simulator and curriculum
+        if: steps.select.outputs.run == 'true'
+        run: python -m pytest -q
+      - name: Actual PPO training and locked evaluation
+        if: steps.select.outputs.run == 'true'
+        run: |
+          python -m butterfly_rl.experiment_v3 --seed ${{ matrix.seed }} --steps-per-stage ${{ inputs.budget }} --output runs/flappy-v3-${{ matrix.seed }}
+      - name: Upload complete training and test outcomes
+        if: always() && steps.select.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: butterfly-v3-seed-${{ matrix.seed }}-${{ github.run_id }}
+          path: runs/flappy-v3-${{ matrix.seed }}/
+          if-no-files-found: warn
+          retention-days: 30
