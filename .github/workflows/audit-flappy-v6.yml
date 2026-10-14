@@ -1,0 +1,29 @@
+name: Audit real PPO v6 learning
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-ppo.txt
+      - name: Download original PPO v6 model checkpoints
+        uses: actions/download-artifact@v4
+        with:
+          name: flappy-ppo-v6-training-and-replays
+          run-id: 38612524898
+          github-token: ${{ github.token }}
+          path: originals
+      - name: Run real held-out course and naive controller audit
+        run: python -m butterfly_rl.audit_flappy_v6 --models originals/runs/flappy-v6 --out audit/v6-report.json --seeds 40
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audited-v6-generalization
+          path: audit/v6-report.json
