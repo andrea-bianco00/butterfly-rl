@@ -1,0 +1,35 @@
+name: Compare v3 and v4 paired simulation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "butterfly_rl/compare_v3_v4.py"
+      - "tests/test_compare_v3_v4.py"
+      - ".github/workflows/compare-v3-v4.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements-ppo.txt pytest
+      - name: Run reproducibility tests
+        run: python -m pytest -q tests/test_compare_v3_v4.py tests/test_curriculum_v4.py
+      - name: Evaluate 45 paired seeded episodes
+        run: python -m butterfly_rl.compare_v3_v4 --seeds 7301 7302 7303 7304 7305 --horizon 600 --output runs/v3-v4-comparison.json
+      - name: Upload actual simulation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-v4-paired-comparison-${{ github.run_id }}
+          path: runs/v3-v4-comparison.json
+          if-no-files-found: warn
