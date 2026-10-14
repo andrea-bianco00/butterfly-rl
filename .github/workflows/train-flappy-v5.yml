@@ -1,0 +1,45 @@
+name: Train real Butterfly PPO v5 and record flights
+on:
+  workflow_dispatch:
+    inputs:
+      steps_per_stage:
+        description: PPO timesteps per stage (5 stages)
+        required: true
+        type: choice
+        default: "100000"
+        options:
+          - "2048"
+          - "100000"
+          - "200000"
+          - "400000"
+permissions:
+  contents: read
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [1729, 2718, 3141]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements-ppo.txt pytest
+      - name: Validate simulator and gate spacing
+        run: python -m pytest -q tests/test_curriculum_v5.py
+      - name: Train actual PPO (no oracle actions)
+        run: python -m butterfly_rl.experiment_v5 --seed ${{ matrix.seed }} --steps-per-stage ${{ inputs.steps_per_stage }} --output runs/v5-${{ matrix.seed }}
+      - name: Record actual learned-policy trajectories
+        run: python -m butterfly_rl.record_flights_v5 --model runs/v5-${{ matrix.seed }}/policy_best.zip --out runs/v5-${{ matrix.seed }}/flights.json
+      - name: Archive models, real metrics and flights
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: butterfly-v5-seed-${{ matrix.seed }}-${{ github.run_id }}
+          path: runs/v5-${{ matrix.seed }}/
+          if-no-files-found: warn
+          retention-days: 30
