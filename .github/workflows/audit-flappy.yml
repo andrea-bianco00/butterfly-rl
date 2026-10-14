@@ -1,0 +1,38 @@
+name: Audit Flappy physics and reference controller
+
+on:
+  push:
+    paths:
+      - ".github/workflows/audit-flappy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install simulator dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ppo.txt
+      - name: Run full test suite
+        run: python -m pytest -q
+      - name: Run independent reference baseline on all five scenarios
+        run: |
+          python -m butterfly_rl.reference_controller --episodes 100 --seed-start 700000 --output runs/reference-baseline.json
+      - name: Upload unfiltered baseline outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flappy-reference-audit-${{ github.run_id }}
+          path: runs/reference-baseline.json
+          if-no-files-found: warn
+          retention-days: 30
