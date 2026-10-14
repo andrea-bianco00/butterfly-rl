@@ -14,11 +14,13 @@ def main():
     p.add_argument("--out",required=True)
     p.add_argument("--seeds",type=int,nargs="+",default=[94001,94002,94003])
     p.add_argument("--horizon",type=int,default=1200)
+    p.add_argument("--scenarios",nargs="+",default=None)
     a=p.parse_args()
     model=PPO.load(a.model,device="cpu")
     out={"source":"PPO deterministic model.predict, real V5 environment steps",
          "checkpoint":Path(a.model).name,"horizon":a.horizon,"episodes":[]}
-    for scenario in list(STAGES)+list(CHALLENGES):
+    for scenario in (a.scenarios if a.scenarios is not None else list(STAGES)+list(CHALLENGES)):
+        if scenario not in list(STAGES)+list(CHALLENGES):raise ValueError("Unknown scenario: "+scenario)
         for seed in a.seeds:
             env=CurriculumFlappyEnvV5(scenario,max_steps=a.horizon)
             obs,info=env.reset(seed=seed)
