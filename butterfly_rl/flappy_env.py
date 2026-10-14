@@ -20,8 +20,8 @@ class FlappyButterflyEnv(gym.Env):
         self.level=level
         self.max_steps=max_steps
         self.action_space=spaces.Box(0,1,(1,),dtype=np.float32)
-        # height, vertical velocity, current lift, wind, next gap position,
-        # next gap center, gap half-height, distance to next obstacle
+        # height, vertical velocity, lift, wind, next gate distance,
+        # next gap vertical offset, half-height, vertical acceleration proxy
         self.observation_space=spaces.Box(-1,1,(8,),dtype=np.float32)
 
     def reset(self,*,seed=None,options=None):
@@ -35,6 +35,7 @@ class FlappyButterflyEnv(gym.Env):
         self.steps=0
         self.passed=0
         self.gates=[]
+        self._credited_gates=set()
         self.wind_scale,self.rain_drag,self.with_gates=PARAMS[self.level]
         self.wind_scale*=float(r.uniform(0.75,1.25))
         self.rain_drag*=float(r.uniform(0.75,1.25))
@@ -55,7 +56,7 @@ class FlappyButterflyEnv(gym.Env):
         gx,gc,gh=self._next_gate()
         return np.clip(np.array([(self.y-2)/2,self.vy/5,self.lift,
            self.wind/3,(gx-self.x)/4,(gc-self.y)/2,gh/2,
-           (gx-self.x)/4],dtype=np.float32),-1,1)
+           (17*self.lift-9.81)/12],dtype=np.float32),-1,1)
 
     def _info(self,crashed):
         return {"crashed":bool(crashed),"passed":self.passed,"x":float(self.x),
@@ -81,13 +82,21 @@ class FlappyButterflyEnv(gym.Env):
         self.x+=dt*1.7
         crashed=bool(self.y<=0.15 or self.y>=3.85)
         gates_passed_this_step=0
+        # A gate is a finite-width wall; crossing is credited only once the
+        # entire butterfly has safely cleared the far side of that wall.
+        butterfly_radius=0.12
+        wall_half_width=0.19
         for gx,gc,gh in self.gates:
-            if abs(gx-self.x)<0.19 and abs(self.y-gc)>gh-0.12:
+            overlap=(self.x+butterfly_radius>=gx-wall_half_width and
+                     previous_x-butterfly_radius<=gx+wall_half_width)
+            if overlap and abs(self.y-gc)>gh-butterfly_radius:
                 crashed=True
-            if previous_x<gx<=self.x and not crashed:
+            if (gx not in self._credited_gates and
+                self.x-butterfly_radius>gx+wall_half_width and not crashed):
+                self._credited_gates.add(gx)
                 self.passed+=1
                 gates_passed_this_step+=1
-        # Keep the course scrolling: recycle gates with fresh randomized gaps.
+        # Recycle gates only after they are behind the player.
         self.gates=[g for g in self.gates if g[0]>=self.x-0.5]
         if self.with_gates and len(self.gates)<4:
             self._new_gate(max([g[0] for g in self.gates],default=self.x)+
