@@ -21,9 +21,11 @@ jobs:
           a,b=FlappyImpulseEnvV6(),FlappyImpulseEnvV6()
           x,_=a.reset(seed=2026);y,_=b.reset(seed=2026)
           assert (x==y).all()
-          for _ in range(20):
-              x,_,da,ta,ia=a.step(1 if _%7==0 else 0)
-              y,_,db,tb,ib=b.step(1 if _%7==0 else 0)
+          for step in range(20):
+              action=1 if step%7==0 else 0
+              x,ra,da,ta,ia=a.step(action)
+              y,rb,db,tb,ib=b.step(action)
+              assert ra==rb
               assert (x==y).all() and da==db and ia==ib
               if da or ta:break
           a.close();b.close()
