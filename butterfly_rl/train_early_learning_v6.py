@@ -26,7 +26,7 @@ def main():
     p.add_argument("--interval",type=int,default=2000)
     p.add_argument("--out",default="runs/flappy-v6")
     a=p.parse_args()
-    if a.steps<2048 or a.interval<2048:raise ValueError("Training budget too small")
+    if a.steps<2048 or a.interval<2000:raise ValueError("Training budget too small")
     out=Path(a.out);out.mkdir(parents=True,exist_ok=True)
     env=FlappyImpulseEnvV6()
     model=PPO("MlpPolicy",env,seed=a.seed,n_steps=1000,batch_size=250,learning_rate=3e-4,verbose=1,device="cpu")
