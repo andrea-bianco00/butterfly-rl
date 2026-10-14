@@ -1,0 +1,46 @@
+name: Publish authentic learning timelapse
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PPO replay dependencies
+        run: python -m pip install -r requirements-ppo.txt
+      - name: Download saved checkpoints from actual v5 training
+        uses: actions/download-artifact@v4
+        with:
+          name: butterfly-v5-seed-1729-38598754189
+          run-id: 38598754189
+          github-token: ${{ github.token }}
+          path: original
+      - name: Record genuine policy decisions on IDENTICAL test courses
+        shell: bash
+        run: |
+          mkdir -p recorded
+          for stage in untrained wide normal dense windy storm best; do
+            python -m butterfly_rl.record_flights_v5 --model "original/policy_${stage}.zip" --out "recorded/policy_${stage}.json" --scenarios normal --seeds 94001 94002 94003
+          done
+      - name: Validate and bundle recorded checkpoints
+        run: python -m butterfly_rl.export_learning_timelapse --folder recorded --out data/replays/learning-v5-1729.json --scenario normal --seeds 94001 94002 94003
+      - name: Publish authentic learning dataset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/replays/learning-v5-1729.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish real PPO checkpoint learning timelapse"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: authentic-ppo-learning-timelapse
+          path: data/replays/learning-v5-1729.json
