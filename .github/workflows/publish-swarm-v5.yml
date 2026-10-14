@@ -1,0 +1,39 @@
+name: Publish genuine 100 butterfly PPO swarm
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  swarm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install environment and PPO
+        run: python -m pip install -r requirements-ppo.txt
+      - name: Download genuine seed 1729 training checkpoints
+        uses: actions/download-artifact@v4
+        with:
+          name: butterfly-v5-seed-1729-38598754189
+          run-id: 38598754189
+          github-token: ${{ github.token }}
+          path: original
+      - name: Simulate and audit 100 independent PPO agents per checkpoint on one course
+        run: python -m butterfly_rl.record_swarm_v5 --models original --out data/replays/swarm-v5-1729.json --scenario normal --seed 94001 --count 100 --horizon 1200
+      - name: Publish verified swarm replay
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/replays/swarm-v5-1729.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish 100 genuine PPO agents per checkpoint"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: genuine-100-butterfly-swarm
+          path: data/replays/swarm-v5-1729.json
