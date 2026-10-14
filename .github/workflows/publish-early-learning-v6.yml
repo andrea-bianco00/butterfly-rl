@@ -1,0 +1,44 @@
+name: Publish verified early learning replay
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: genuine-early-ppo-learning-v6
+          run-id: 38616179541
+          github-token: ${{ github.token }}
+          path: imported
+      - name: Validate the recorded flights before publication
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          path=pathlib.Path('imported/data/replays/early-v6-1729.json')
+          data=json.loads(path.read_text())
+          checkpoints=data['checkpoints']
+          assert data['count']==100 and len(checkpoints)==28
+          assert [c['training_steps_approx'] for c in checkpoints]==sorted(c['training_steps_approx'] for c in checkpoints)
+          assert checkpoints[0]['training_steps_approx']==0
+          assert checkpoints[-1]['training_steps_approx']==100000
+          for c in checkpoints:
+              assert len(c['outcomes'])==100 and c['frames']
+              assert all(len(f['alive'])<=100 for f in c['frames'])
+          print('Validated authentic chronological 100-agent recordings')
+          PY
+      - name: Publish exact recorded replay bytes
+        run: |
+          mkdir -p data/replays
+          cp imported/data/replays/early-v6-1729.json data/replays/early-v6-1729.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/replays/early-v6-1729.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish audited early PPO v6 learning trajectories"
+            git push
+          fi
