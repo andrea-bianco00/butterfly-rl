@@ -1,0 +1,43 @@
+name: Optimize authentic butterfly replay for portfolio
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract original frames without altering flight trajectories
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          src=pathlib.Path('data/replays/early-v6-1729.json')
+          assert src.exists(), 'Original authenticated replay missing'
+          d=json.loads(src.read_text())
+          wanted=[0,8000,12000,16000,18000,20000,22000,24000,26000,28000,30000,100000]
+          stages={c['training_steps_approx']:c for c in d['checkpoints']}
+          assert all(s in stages for s in wanted)
+          out={k:v for k,v in d.items() if k!='checkpoints'}
+          out['checkpoints']=[]
+          for step in wanted:
+              c=stages[step]
+              # 6s per early policy, 18s final. Exact consecutive simulator frames.
+              # No invented states, resampling, repositioning, or fake survivals.
+              max_frames=450 if step==100000 else 150
+              f=c['frames'][:max_frames]
+              out['checkpoints'].append({**c,'frames':f})
+              assert len(c['outcomes'])==100 and len(f)>0
+          dst=pathlib.Path('data/replays/early-v6-portfolio.json')
+          dst.write_text(json.dumps(out,separators=(',',':')))
+          print('Verified stages',wanted,'size',dst.stat().st_size)
+          PY
+      - name: Publish compact authentic playback
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/replays/early-v6-portfolio.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish lightweight authentic 100-butterfly replay"
+            git push
+          fi
