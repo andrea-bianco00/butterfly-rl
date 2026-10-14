@@ -1,0 +1,26 @@
+name: Test v4 swept collision physics
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "butterfly_rl/curriculum_v4.py"
+      - "tests/test_curriculum_v4.py"
+      - ".github/workflows/test-curriculum-v4.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements-ppo.txt pytest
+      - name: Run v4 physics regression tests
+        run: python -m pytest -q tests/test_curriculum_v4.py
