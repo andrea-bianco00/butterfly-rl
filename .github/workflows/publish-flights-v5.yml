@@ -1,0 +1,37 @@
+name: Publish real PPO v5 flights for portfolio
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download original v5 seed 1729 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: butterfly-v5-seed-1729-38598754189
+          run-id: 38598754189
+          github-token: ${{ github.token }}
+          path: original
+      - name: Export genuine trajectories, including failures
+        run: python -m butterfly_rl.export_replays_v5 --input original/flights.json --output data/replays/v5-1729.json
+      - name: Commit reproducible replay dataset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/replays/v5-1729.json
+          if git diff --cached --quiet; then
+            echo "No changes to recorded replay"
+          else
+            git commit -m "Publish real PPO v5 seed 1729 flight trajectories"
+            git push
+          fi
+      - name: Preserve published dataset
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-replay-v5-1729
+          path: data/replays/v5-1729.json
